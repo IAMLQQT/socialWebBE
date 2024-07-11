@@ -57,6 +57,7 @@ exports.protect = catchAsync(async (req, res, next) => {
   )
     return new AppError('User changed password. Please login again', 401);
   req.user = currentUser;
+  console.log(currentUser);
   next();
 });
 exports.restrictTo =
@@ -151,6 +152,7 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
         first_name: given_name,
         last_name: family_name,
         profile_picture: picture,
+        created_at: Date.now(),
       };
       await Users.create(newUser, {
         validate: true,
@@ -165,22 +167,22 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
       If you have any questions or need further assistance, please feel free to contact our support team.
 
       Best regards,
-      ĐHKH Student Information Exchange Platform
+      PTIT Student Information Exchange Platform
       `;
 
       await sendEmail({
         email: newUser.email,
-        subject: '[HUSC] Welcome to ĐHKH Social Web - Initial Password',
+        subject: '[PTIT] Welcome to PTIT Social Web - Initial Password',
         message,
       });
       res.status(200).json({ status: 'success' });
     } else {
-      res
+      return res
         .status(401)
         .json({ status: 'failed', message: 'This email is already in use!' });
     }
   } catch (error) {
-    console.error('Google Sign-In failed:', error.message);
+    console.error('Google Sign-In failed:', error);
     res.status(401).json({ error: 'Google Sign-In failed' });
   }
 });
@@ -190,7 +192,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   const user = await Users.findOne({ where: { email: email } });
 
   if (!user) {
-    return next(new AppError('Email address is not registed!', 400));
+    return next(new AppError('Email address is not  d!', 400));
   }
   const resetToken = user.createPasswordResetToken();
 
@@ -251,14 +253,12 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   });
 });
 exports.updatePassword = catchAsync(async (req, res, next) => {
-  const user = await Users.findOne({ where: { email: req.body.email } });
+  const { currentPassword, newPassword } = req.body;
+  const user = await Users.findOne({ where: { user_id: req.user.user_id } });
   if (!user) return next(new AppError("Can't found this user", 400));
-  const check = await user.checkPassword(
-    req.body.currentPassword,
-    user.password,
-  );
+  const check = await user.checkPassword(currentPassword, user.password);
   if (!check) return next(new AppError('Password is not correct!!!', 401));
-  user.password = req.body.newPassword;
+  user.password = newPassword;
   user.passwordChangedAt = Date.now();
   user.passwordVersion += 1;
   await user.save();

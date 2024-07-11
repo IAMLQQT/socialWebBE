@@ -8,7 +8,7 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   // The database URL depends on the location of the database
   databaseURL:
-    'https://socialweb-405017-default-rtdb.asia-southeast1.firebasedatabase.app/',
+    'https://ptit-social-web-default-rtdb.firebaseio.com/',
 });
 
 // As an admin, the app has access to read and write all data, regardless of Security Rules

@@ -12,7 +12,7 @@ const app = require('./app');
 
 async function testConnection() {
   try {
-    await sequelize.authenticate();
+    await sequelize.sync({});
     console.log('Database connection has been established successfully.');
   } catch (error) {
     console.error('Unable to connect to the database:', error);
@@ -30,12 +30,5 @@ const io = socketIo(server);
 //#TODO: Tính tới trường hợp nếu người dùng gửi receiver_id không có trong db
 io.on('connection', messageHandler);
 
-const port = 3000;
-server.listen(port, () => console.log(`Server running on port ${port}`));
-process.on('unhandledRejection', (err) => {
-  console.log('UNHANDLED REJECTION! 💥 Shutting down...');
-  console.log(err.name, err.message);
-  server.close(() => {
-    process.exit(1);
-  });
-});
+const PORT = process.env.SERVER_PORT || 3000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

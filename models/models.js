@@ -5,13 +5,11 @@ const initModel = require('./init-models');
 
 const databaseName = process.env.DATABASE_NAME;
 
-const username = "admin";
+const username = process.env.USERNAME;
 const password = process.env.PASSWORD;
-
-console.log("password la: " + password);
 const PORT = process.env.DATABASE_PORT || 3306;
-const sequelize = new Sequelize(databaseName, username, password, {
-  host: 'social-web.ctlskvoaafuc.ap-southeast-1.rds.amazonaws.com',
+const sequelize = new Sequelize(databaseName, "root", password, {
+  host: '127.0.0.1',
   dialect:
     'mysql' /* one of 'mysql' | 'postgres' | 'sqlite' | 'mariadb' | 'mssql' | 'db2' | 'snowflake' | 'oracle' */,
   port: PORT,
@@ -25,11 +23,33 @@ const sequelize = new Sequelize(databaseName, username, password, {
     timestamps: false,
   },
 });
+console.log(username);
 //Define model
 const { Users, Posts, Comments, Likes, Followers, User_saved_posts } =
   initModel(sequelize);
-//Define relationship
+sequelize.addHook('beforeCount', function (options) {
+  if (this._scope.include && this._scope.include.length > 0) {
+    options.distinct = true;
+    options.col =
+      this._scope.col || options.col || `"${this.options.name.singular}".id`;
+  }
 
+  if (options.include && options.include.length > 0) {
+    options.include = null;
+  }
+});
+//Define relationship
+sequelize.addHook('beforeCount', function (options) {
+  if (this._scope.include && this._scope.include.length > 0) {
+    options.distinct = true;
+    options.col =
+      this._scope.col || options.col || `"${this.options.name.singular}".id`;
+  }
+
+  if (options.include && options.include.length > 0) {
+    options.include = null;
+  }
+});
 Users.addHook('beforeCreate', async (user) => {
   if (user.password) {
     user.password = await bcrypt.hash(user.password, 12);
@@ -68,4 +88,5 @@ module.exports = {
   Likes,
   Followers,
   User_saved_posts,
+  sequelize,
 };
