@@ -1,10 +1,14 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('likes', {
-    likeID: {
-      type: DataTypes.INTEGER,
+  return sequelize.define('friendship', {
+    friendship_id: {
+      type: DataTypes.STRING(35),
       allowNull: false,
       primaryKey: true
+    },
+    friendship_status: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false
     },
     user_id: {
       type: DataTypes.STRING(15),
@@ -15,50 +19,50 @@ module.exports = function(sequelize, DataTypes) {
         key: 'user_id'
       }
     },
-    posts_post_id: {
-      type: DataTypes.STRING(25),
+    user_friend_id: {
+      type: DataTypes.STRING(15),
       allowNull: false,
       primaryKey: true,
       references: {
-        model: 'posts',
-        key: 'post_id'
+        model: 'user',
+        key: 'user_id'
       }
     }
   }, {
     sequelize,
-    tableName: 'likes',
-    timestamps: false,
+    tableName: 'friendship',
+    timestamps: true,
     indexes: [
       {
         name: "PRIMARY",
         unique: true,
         using: "BTREE",
         fields: [
-          { name: "likeID" },
+          { name: "friendship_id" },
           { name: "user_id" },
-          { name: "posts_post_id" },
+          { name: "user_friend_id" },
         ]
       },
       {
-        name: "likeID_UNIQUE",
+        name: "friendship_id_UNIQUE",
         unique: true,
         using: "BTREE",
         fields: [
-          { name: "likeID" },
+          { name: "friendship_id" },
         ]
       },
       {
-        name: "fk_likes_user1_idx",
+        name: "fk_friendship_user1_idx",
         using: "BTREE",
         fields: [
           { name: "user_id" },
         ]
       },
       {
-        name: "fk_likes_posts1_idx",
+        name: "fk_friendship_user2_idx",
         using: "BTREE",
         fields: [
-          { name: "posts_post_id" },
+          { name: "user_friend_id" },
         ]
       },
     ]

@@ -1,90 +1,86 @@
-var DataTypes = require('sequelize').DataTypes;
-var _Comments = require('./comments');
-var _Followers = require('./followers');
-var _Likes = require('./likes');
-var _Posts = require('./posts');
-var _User_saved_posts = require('./user_saved_posts');
-var _Users = require('./users');
+var DataTypes = require("sequelize").DataTypes;
+var _account = require("./account");
+var _bookmark = require("./bookmark");
+var _comments = require("./comments");
+var _friendrequest = require("./friendrequest");
+var _friendship = require("./friendship");
+var _likes = require("./likes");
+var _posts = require("./posts");
+var _role = require("./role");
+var _tags = require("./tags");
+var _tags_posts = require("./tags_posts");
+var _user = require("./user");
 
 function initModels(sequelize) {
-  var Comments = _Comments(sequelize, DataTypes);
-  var Followers = _Followers(sequelize, DataTypes);
-  var Likes = _Likes(sequelize, DataTypes);
-  var Posts = _Posts(sequelize, DataTypes);
-  var User_saved_posts = _User_saved_posts(sequelize, DataTypes);
-  var Users = _Users(sequelize, DataTypes);
+  var account = _account(sequelize, DataTypes);
+  var bookmark = _bookmark(sequelize, DataTypes);
+  var comments = _comments(sequelize, DataTypes);
+  var friendrequest = _friendrequest(sequelize, DataTypes);
+  var friendship = _friendship(sequelize, DataTypes);
+  var likes = _likes(sequelize, DataTypes);
+  var posts = _posts(sequelize, DataTypes);
+  var role = _role(sequelize, DataTypes);
+  var tags = _tags(sequelize, DataTypes);
+  var tags_posts = _tags_posts(sequelize, DataTypes);
+  var user = _user(sequelize, DataTypes);
 
-  Posts.belongsToMany(Users, {
-    as: 'user_id_Users',
-    through: Likes,
-    foreignKey: 'post_id',
-    otherKey: 'user_id',
-  });
-  Posts.belongsToMany(Users, {
-    as: 'user_id_Users_User_saved_posts',
-    through: User_saved_posts,
-    foreignKey: 'post_id',
-    otherKey: 'user_id',
-  });
-  Users.belongsToMany(Posts, {
-    as: 'post_id_Posts',
-    through: Likes,
-    foreignKey: 'user_id',
-    otherKey: 'post_id',
-  });
-  Users.belongsToMany(Posts, {
-    as: 'post_id_Posts_User_saved_posts',
-    through: User_saved_posts,
-    foreignKey: 'user_id',
-    otherKey: 'post_id',
-  });
-  Users.belongsToMany(Users, {
-    as: 'following_id_Users',
-    through: Followers,
-    foreignKey: 'follower_id',
-    otherKey: 'following_id',
-  });
-  Users.belongsToMany(Users, {
-    as: 'follower_id_Users',
-    through: Followers,
-    foreignKey: 'following_id',
-    otherKey: 'follower_id',
-  });
-  Comments.belongsTo(Posts, { as: 'post', foreignKey: 'post_id' });
-  Posts.hasMany(Comments, { as: 'Comments', foreignKey: 'post_id' });
-  Likes.belongsTo(Posts, { as: 'post', foreignKey: 'post_id' });
-  Posts.hasMany(Likes, { as: 'Likes', foreignKey: 'post_id' });
-  User_saved_posts.belongsTo(Posts, { as: 'post', foreignKey: 'post_id' });
-  Posts.hasMany(User_saved_posts, {
-    as: 'User_saved_posts',
-    foreignKey: 'post_id',
-  });
-  Comments.belongsTo(Users, { as: 'user', foreignKey: 'user_id' });
-  Users.hasMany(Comments, { as: 'Comments', foreignKey: 'user_id' });
-  Followers.belongsTo(Users, { as: 'follower', foreignKey: 'follower_id' });
-  Users.hasMany(Followers, { as: 'Followers', foreignKey: 'follower_id' });
-  Followers.belongsTo(Users, { as: 'following', foreignKey: 'following_id' });
-  Users.hasMany(Followers, {
-    as: 'following_Followers',
-    foreignKey: 'following_id',
-  });
-  Likes.belongsTo(Users, { as: 'user', foreignKey: 'user_id' });
-  Users.hasMany(Likes, { as: 'Likes', foreignKey: 'user_id' });
-  Posts.belongsTo(Users, { as: 'user', foreignKey: 'user_id' });
-  Users.hasMany(Posts, { as: 'Posts', foreignKey: 'user_id' });
-  User_saved_posts.belongsTo(Users, { as: 'user', foreignKey: 'user_id' });
-  Users.hasMany(User_saved_posts, {
-    as: 'User_saved_posts',
-    foreignKey: 'user_id',
-  });
+  posts.belongsToMany(tags, { as: 'tag_id_tags', through: tags_posts, foreignKey: "post_id", otherKey: "tag_id" });
+  posts.belongsToMany(user, { as: 'user_id_user_bookmarks', through: bookmark, foreignKey: "post_id", otherKey: "user_id" });
+  posts.belongsToMany(user, { as: 'user_id_user_comments', through: comments, foreignKey: "post_id", otherKey: "user_id" });
+  posts.belongsToMany(user, { as: 'user_id_user_likes', through: likes, foreignKey: "posts_post_id", otherKey: "user_id" });
+  role.belongsToMany(user, { as: 'user_id_users', through: account, foreignKey: "RoleID", otherKey: "user_id" });
+  tags.belongsToMany(posts, { as: 'post_id_posts_tags_posts', through: tags_posts, foreignKey: "tag_id", otherKey: "post_id" });
+  user.belongsToMany(posts, { as: 'post_id_posts', through: bookmark, foreignKey: "user_id", otherKey: "post_id" });
+  user.belongsToMany(posts, { as: 'post_id_posts_comments', through: comments, foreignKey: "user_id", otherKey: "post_id" });
+  user.belongsToMany(posts, { as: 'posts_post_id_posts', through: likes, foreignKey: "user_id", otherKey: "posts_post_id" });
+  user.belongsToMany(role, { as: 'RoleID_roles', through: account, foreignKey: "user_id", otherKey: "RoleID" });
+  user.belongsToMany(user, { as: 'user_receive_id_users', through: friendrequest, foreignKey: "user_sent_id", otherKey: "user_receive_id" });
+  user.belongsToMany(user, { as: 'user_sent_id_users', through: friendrequest, foreignKey: "user_receive_id", otherKey: "user_sent_id" });
+  user.belongsToMany(user, { as: 'user_friend_id_users', through: friendship, foreignKey: "user_id", otherKey: "user_friend_id" });
+  user.belongsToMany(user, { as: 'user_id_user_friendships', through: friendship, foreignKey: "user_friend_id", otherKey: "user_id" });
+  bookmark.belongsTo(posts, { as: "post", foreignKey: "post_id"});
+  posts.hasMany(bookmark, { as: "bookmarks", foreignKey: "post_id"});
+  comments.belongsTo(posts, { as: "post", foreignKey: "post_id"});
+  posts.hasMany(comments, { as: "comments", foreignKey: "post_id"});
+  likes.belongsTo(posts, { as: "posts_post", foreignKey: "posts_post_id"});
+  posts.hasMany(likes, { as: "likes", foreignKey: "posts_post_id"});
+  tags_posts.belongsTo(posts, { as: "post", foreignKey: "post_id"});
+  posts.hasMany(tags_posts, { as: "tags_posts", foreignKey: "post_id"});
+  account.belongsTo(role, { as: "Role", foreignKey: "RoleID"});
+  role.hasMany(account, { as: "accounts", foreignKey: "RoleID"});
+  tags_posts.belongsTo(tags, { as: "tag", foreignKey: "tag_id"});
+  tags.hasMany(tags_posts, { as: "tags_posts", foreignKey: "tag_id"});
+  account.belongsTo(user, { as: "user", foreignKey: "user_id"});
+  user.hasMany(account, { as: "accounts", foreignKey: "user_id"});
+  bookmark.belongsTo(user, { as: "user", foreignKey: "user_id"});
+  user.hasMany(bookmark, { as: "bookmarks", foreignKey: "user_id"});
+  comments.belongsTo(user, { as: "user", foreignKey: "user_id"});
+  user.hasMany(comments, { as: "comments", foreignKey: "user_id"});
+  friendrequest.belongsTo(user, { as: "user_sent", foreignKey: "user_sent_id"});
+  user.hasMany(friendrequest, { as: "friendrequests", foreignKey: "user_sent_id"});
+  friendrequest.belongsTo(user, { as: "user_receive", foreignKey: "user_receive_id"});
+  user.hasMany(friendrequest, { as: "user_receive_friendrequests", foreignKey: "user_receive_id"});
+  friendship.belongsTo(user, { as: "user", foreignKey: "user_id"});
+  user.hasMany(friendship, { as: "friendships", foreignKey: "user_id"});
+  friendship.belongsTo(user, { as: "user_friend", foreignKey: "user_friend_id"});
+  user.hasMany(friendship, { as: "user_friend_friendships", foreignKey: "user_friend_id"});
+  likes.belongsTo(user, { as: "user", foreignKey: "user_id"});
+  user.hasMany(likes, { as: "likes", foreignKey: "user_id"});
+  posts.belongsTo(user, { as: "user", foreignKey: "user_id"});
+  user.hasMany(posts, { as: "posts", foreignKey: "user_id"});
 
   return {
-    Comments,
-    Followers,
-    Likes,
-    Posts,
-    User_saved_posts,
-    Users,
+    account,
+    bookmark,
+    comments,
+    friendrequest,
+    friendship,
+    likes,
+    posts,
+    role,
+    tags,
+    tags_posts,
+    user,
   };
 }
 module.exports = initModels;

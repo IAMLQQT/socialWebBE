@@ -1,7 +1,7 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('likes', {
-    likeID: {
+  return sequelize.define('bookmark', {
+    bookmark_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
       primaryKey: true
@@ -15,7 +15,7 @@ module.exports = function(sequelize, DataTypes) {
         key: 'user_id'
       }
     },
-    posts_post_id: {
+    post_id: {
       type: DataTypes.STRING(25),
       allowNull: false,
       primaryKey: true,
@@ -23,10 +23,14 @@ module.exports = function(sequelize, DataTypes) {
         model: 'posts',
         key: 'post_id'
       }
+    },
+    saved_at: {
+      type: DataTypes.BIGINT,
+      allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'likes',
+    tableName: 'bookmark',
     timestamps: false,
     indexes: [
       {
@@ -34,31 +38,31 @@ module.exports = function(sequelize, DataTypes) {
         unique: true,
         using: "BTREE",
         fields: [
-          { name: "likeID" },
+          { name: "bookmark_id" },
           { name: "user_id" },
-          { name: "posts_post_id" },
+          { name: "post_id" },
         ]
       },
       {
-        name: "likeID_UNIQUE",
+        name: "bookmark_id_UNIQUE",
         unique: true,
         using: "BTREE",
         fields: [
-          { name: "likeID" },
+          { name: "bookmark_id" },
         ]
       },
       {
-        name: "fk_likes_user1_idx",
+        name: "fk_bookmark_user1_idx",
         using: "BTREE",
         fields: [
           { name: "user_id" },
         ]
       },
       {
-        name: "fk_likes_posts1_idx",
+        name: "fk_bookmark_posts1_idx",
         using: "BTREE",
         fields: [
-          { name: "posts_post_id" },
+          { name: "post_id" },
         ]
       },
     ]
