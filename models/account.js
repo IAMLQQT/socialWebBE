@@ -2,7 +2,7 @@ const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
   return sequelize.define('account', {
     accountID: {
-      type: DataTypes.STRING(20),
+      type: DataTypes.STRING(50),
       allowNull: false,
       primaryKey: true
     },
@@ -23,15 +23,6 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.BOOLEAN,
       allowNull: false
     },
-    user_id: {
-      type: DataTypes.STRING(15),
-      allowNull: false,
-      primaryKey: true,
-      references: {
-        model: 'user',
-        key: 'user_id'
-      }
-    },
     RoleID: {
       type: DataTypes.STRING(10),
       allowNull: false,
@@ -40,6 +31,18 @@ module.exports = function(sequelize, DataTypes) {
         model: 'role',
         key: 'RoleID'
       }
+    },
+    passwordResetToken: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    passwordResetExpries: {
+      type: DataTypes.BIGINT,
+      allowNull: true
+    },
+    passwordVersion: {
+      type: DataTypes.INTEGER,
+      allowNull: true
     }
   }, {
     sequelize,
@@ -52,7 +55,6 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "accountID" },
-          { name: "user_id" },
           { name: "RoleID" },
         ]
       },
@@ -70,13 +72,6 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "email" },
-        ]
-      },
-      {
-        name: "fk_account_user_idx",
-        using: "BTREE",
-        fields: [
-          { name: "user_id" },
         ]
       },
       {

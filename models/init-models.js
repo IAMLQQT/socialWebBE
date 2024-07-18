@@ -25,19 +25,19 @@ function initModels(sequelize) {
   var user = _user(sequelize, DataTypes);
 
   posts.belongsToMany(tags, { as: 'tag_id_tags', through: tags_posts, foreignKey: "post_id", otherKey: "tag_id" });
-  posts.belongsToMany(user, { as: 'user_id_user_bookmarks', through: bookmark, foreignKey: "post_id", otherKey: "user_id" });
+  posts.belongsToMany(user, { as: 'user_id_users', through: bookmark, foreignKey: "post_id", otherKey: "user_id" });
   posts.belongsToMany(user, { as: 'user_id_user_comments', through: comments, foreignKey: "post_id", otherKey: "user_id" });
   posts.belongsToMany(user, { as: 'user_id_user_likes', through: likes, foreignKey: "posts_post_id", otherKey: "user_id" });
-  role.belongsToMany(user, { as: 'user_id_users', through: account, foreignKey: "RoleID", otherKey: "user_id" });
   tags.belongsToMany(posts, { as: 'post_id_posts_tags_posts', through: tags_posts, foreignKey: "tag_id", otherKey: "post_id" });
   user.belongsToMany(posts, { as: 'post_id_posts', through: bookmark, foreignKey: "user_id", otherKey: "post_id" });
   user.belongsToMany(posts, { as: 'post_id_posts_comments', through: comments, foreignKey: "user_id", otherKey: "post_id" });
   user.belongsToMany(posts, { as: 'posts_post_id_posts', through: likes, foreignKey: "user_id", otherKey: "posts_post_id" });
-  user.belongsToMany(role, { as: 'RoleID_roles', through: account, foreignKey: "user_id", otherKey: "RoleID" });
   user.belongsToMany(user, { as: 'user_receive_id_users', through: friendrequest, foreignKey: "user_sent_id", otherKey: "user_receive_id" });
   user.belongsToMany(user, { as: 'user_sent_id_users', through: friendrequest, foreignKey: "user_receive_id", otherKey: "user_sent_id" });
   user.belongsToMany(user, { as: 'user_friend_id_users', through: friendship, foreignKey: "user_id", otherKey: "user_friend_id" });
   user.belongsToMany(user, { as: 'user_id_user_friendships', through: friendship, foreignKey: "user_friend_id", otherKey: "user_id" });
+  user.belongsTo(account, { as: "account", foreignKey: "accountID"});
+  account.hasMany(user, { as: "users", foreignKey: "accountID"});
   bookmark.belongsTo(posts, { as: "post", foreignKey: "post_id"});
   posts.hasMany(bookmark, { as: "bookmarks", foreignKey: "post_id"});
   comments.belongsTo(posts, { as: "post", foreignKey: "post_id"});
@@ -50,8 +50,6 @@ function initModels(sequelize) {
   role.hasMany(account, { as: "accounts", foreignKey: "RoleID"});
   tags_posts.belongsTo(tags, { as: "tag", foreignKey: "tag_id"});
   tags.hasMany(tags_posts, { as: "tags_posts", foreignKey: "tag_id"});
-  account.belongsTo(user, { as: "user", foreignKey: "user_id"});
-  user.hasMany(account, { as: "accounts", foreignKey: "user_id"});
   bookmark.belongsTo(user, { as: "user", foreignKey: "user_id"});
   user.hasMany(bookmark, { as: "bookmarks", foreignKey: "user_id"});
   comments.belongsTo(user, { as: "user", foreignKey: "user_id"});

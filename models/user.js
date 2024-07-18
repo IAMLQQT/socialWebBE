@@ -27,8 +27,13 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true
     },
     accountID: {
-      type: DataTypes.STRING(20),
-      allowNull: true
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      primaryKey: true,
+      references: {
+        model: 'account',
+        key: 'accountID'
+      }
     }
   }, {
     sequelize,
@@ -41,6 +46,14 @@ module.exports = function(sequelize, DataTypes) {
         using: "BTREE",
         fields: [
           { name: "user_id" },
+          { name: "accountID" },
+        ]
+      },
+      {
+        name: "fk_user_account1_idx",
+        using: "BTREE",
+        fields: [
+          { name: "accountID" },
         ]
       },
     ]

@@ -5,14 +5,13 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const Sequelize = require('sequelize');
 const axios = require('axios');
-
+const {nanoid}  = require('nanoid');
 const sendEmail = require('../utils/email');
-const { Users } = require('../models/models');
+const { user, account } = require('../models/models');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 
 const { gt } = Sequelize.Op;
-
 const signToken = (id, passwordVersion, ...info) =>
   jwt.sign({ id, passwordVersion, ...info }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
@@ -30,68 +29,64 @@ function generateRandomPassword(length) {
 
   return passwordArray.join('');
 }
+
 exports.protect = catchAsync(async (req, res, next) => {
   let token;
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
+
+  // Lấy token từ header authorization
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
     console.log(token);
   }
-  if (!token)
-    return next(
-      new AppError('You are not allowed to access this. Please log in', 401),
-    );
 
-  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-  const user_id = decoded.id;
-  const currentUser = await Users.findOne({ where: { user_id: user_id } });
-  if (!currentUser || currentUser.is_active === 1) {
-    return next(new AppError('Users is longer exist'));
+  // Nếu không có token, trả về lỗi
+  if (!token) {
+    return next(new AppError('You are not allowed to access this. Please log in', 401));
   }
-  const timestamp = currentUser.passwordChangeAt;
+
+  // Giải mã token
+  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  const accountID = decoded.id;
+
+  // Tìm account từ database
+  const currentAccount = await account.findOne({ where: { accountID: accountID } });
+
+  // Nếu không tìm thấy account hoặc account bị khóa, trả về lỗi
+  if (!currentAccount || currentAccount.account_status === 1) {
+    return next(new AppError('Account no longer exists', 401));
+  }
+
+  // Kiểm tra thời gian thay đổi mật khẩu
+  const timestamp = currentAccount.passwordChangeAt;
+  if (timestamp && timestamp > decoded.iat) {
+    return next(new AppError('Account changed password. Please log in again', 401));
+  }
   if (
     timestamp > decoded.iat ||
     decoded.passwordVersion !== currentUser.passwordVersion
   )
-    return new AppError('User changed password. Please login again', 401);
-  req.user = currentUser;
-  console.log(currentUser);
+  // Gán account vào request
+  req.account = currentAccount;
+  console.log(currentAccount);
   next();
 });
+
 exports.restrictTo =
   (...roles) =>
   (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(req.account.RoleID)) {
       return next(
         new AppError('You do not have permission to access this!', 403),
       );
     }
   };
-exports.signup = catchAsync(async (req, res, next) => {
-  const newUser = {
-    user_id: req.body.user_id,
-    email: req.body.email,
-    password: req.body.password,
-    first_name: req.body.first_name,
-    last_name: req.body.last_name,
-    profile_picture: req.body.profile_picture,
-    bio: req.body.bio,
-  };
 
-  const result = await Users.create(newUser, {
-    validate: true,
-    returning: true,
-  });
-  res.status(200).json({ status: 'success', data: result });
-});
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return next(new AppError('Please provide email and password', 400));
   }
-  const userInfo = await Users.findOne({ where: { email: email } });
+  const userInfo = await account.findOne({ where: { email: email } });
 
   if (
     !userInfo ||
@@ -100,10 +95,10 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('Incorrect email or password', 401));
   }
   //check if user is active
-  if (!userInfo.is_active)
+  if (!userInfo.account_status)
     return next(new AppError('This account was deactivated!', 401));
   //if everything ok, send token to client
-  const token = signToken(userInfo.user_id, userInfo.passwordVersion);
+  const token = signToken(userInfo.accountID);
   //Seend cookie
   const cookieOptions = {
     expires: new Date(
@@ -140,24 +135,29 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
     //   });
     //   return next(new AppError('Please use education email (HUSC).', 400));
     // }
-
-    const user = await Users.findOne({ where: { email: email } });
-
-    if (!user) {
+    const existingAccount = await account.findOne({ where: { email: email } });
+    
+    if (!existingAccount) {
       const initialPassword = generateRandomPassword(8);
-      const newUser = {
-        user_id: sub,
+       // Create new account in Accounts table
+       const newAccount = await account.create({
+        accountID: sub, // Assuming 'sub' is used as accountID
         email: email,
         password: initialPassword,
+        account_status: true,
+        RoleID: '1111111111', 
+      });
+
+      // Create new user in Users table
+      const newUser = {
+        user_id: nanoid(15),
         first_name: given_name,
         last_name: family_name,
         profile_picture: picture,
-        created_at: Date.now(),
+        accountID: newAccount.accountID, 
       };
-      await Users.create(newUser, {
-        validate: true,
-        returning: true,
-      });
+
+      await user.create(newUser);
       const message = `Dear ${newUser.first_name} ${newUser.last_name},
 
       Welcome to our platform! Your account has been successfully created. Please use the following password to login: ${initialPassword}
@@ -171,7 +171,7 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
       `;
 
       await sendEmail({
-        email: newUser.email,
+        email: newAccount.email,
         subject: '[PTIT] Welcome to PTIT Social Web - Initial Password',
         message,
       });
@@ -189,22 +189,22 @@ exports.googleSignIn = catchAsync(async (req, res, next) => {
 
 exports.forgotPassword = catchAsync(async (req, res, next) => {
   const { email } = req.body;
-  const user = await Users.findOne({ where: { email: email } });
+  const Accountinfo = await account.findOne({ where: { email: email } });
 
-  if (!user) {
+  if (!Accountinfo) {
     return next(new AppError('Email address is not  d!', 400));
   }
-  const resetToken = user.createPasswordResetToken();
+  const resetToken = Accountinfo.createPasswordResetToken();
 
-  await user.save();
+  await Accountinfo.save();
   //3 send to email
   const resetURL = `${process.env.WEB_DOMAIN}/resetPassword/${resetToken}`;
-  const message = `Dear ${user.first_name},\n\nWe received a request to reset your password. If you did not initiate this request, please ignore this email.\n\nTo reset your password, please click on the following link:\n\n${resetURL}\n\nThis link is valid for 10 minutes.\n\nThank you,\nThe Social Web Team`;
+  const message = `Dear ${Accountinfo.first_name},\n\nWe received a request to reset your password. If you did not initiate this request, please ignore this email.\n\nTo reset your password, please click on the following link:\n\n${resetURL}\n\nThis link is valid for 10 minutes.\n\nThank you,\nThe Social Web Team`;
 
   try {
     await sendEmail({
-      email: user.email,
-      subject: '[HUSC] Your password reset token (valid for 10 min)',
+      email: Accountinfo.email,
+      subject: '[PTIT] Your password reset token (valid for 10 min)',
       message,
     });
 
@@ -213,9 +213,9 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
       message: 'Token sent to email!',
     });
   } catch (err) {
-    user.passwordResetToken = undefined;
-    user.passwordResetExpires = undefined;
-    await user.save();
+    Accountinfo.passwordResetToken = undefined;
+    Accountinfo.passwordResetExpires = undefined;
+    await Accountinfo.save();
 
     return next(
       new AppError('There was an error sending the email. Try again later!'),
